@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ember &amp; Oak Steakhouse – Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --arang:#17120f; --kartu:#221a16; --garis:#3a2d26;
+  --anggur:#7a1f2b; --kuningan:#c9a45c;
+  --teks:#f1e8dc; --redup:#a99a8b;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--arang);color:var(--teks);font:400 16px/1.55 Nunito,system-ui,sans-serif}
+header{background:linear-gradient(180deg,#2b1512 0%,var(--arang) 100%);padding:56px 20px 44px;text-align:center;border-bottom:3px solid var(--anggur)}
+header h1{font:800 clamp(2.1rem,6.5vw,3.6rem)/1.1 "Playfair Display",Georgia,serif;margin:0 0 10px;color:var(--kuningan);letter-spacing:.01em}
+header p{margin:0 auto;color:var(--redup);max-width:46ch}
+header .jam{display:inline-block;margin-top:18px;border:1px solid var(--kuningan);color:var(--kuningan);font-weight:600;padding:6px 16px;border-radius:999px;font-size:.9rem}
+.alat{position:sticky;top:0;z-index:5;background:var(--arang);border-bottom:1px solid var(--garis);padding:12px 16px}
+.alat-isi{max-width:1000px;margin:auto;display:flex;flex-direction:column;gap:10px}
+#cari{width:100%;padding:11px 14px;border:1px solid var(--garis);border-radius:10px;background:var(--kartu);color:var(--teks);font:inherit}
+#cari::placeholder{color:var(--redup)}
+.tab{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.tab button{flex:none;border:1px solid var(--garis);background:var(--kartu);color:var(--teks);padding:7px 16px;border-radius:999px;font:600 .92rem Nunito,sans-serif;cursor:pointer}
+.tab button[aria-pressed=true]{background:var(--anggur);border-color:var(--anggur);color:#fff}
+button:focus-visible,#cari:focus-visible{outline:3px solid var(--kuningan);outline-offset:2px}
+main{max-width:1000px;margin:auto;padding:26px 16px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px}
+.kartu{background:var(--kartu);border:1px solid var(--garis);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.foto{aspect-ratio:4/3;display:grid;place-items:center;font-size:4.4rem;position:relative;overflow:hidden}
+.foto img{width:100%;height:100%;object-fit:cover;display:block}
+.lencana{position:absolute;top:10px;left:10px;background:var(--anggur);color:#fff;font:700 .78rem Nunito,sans-serif;padding:3px 10px;border-radius:999px}
+.habis .foto{filter:grayscale(1);opacity:.55}
+.info{padding:14px 16px 18px;display:flex;flex-direction:column;gap:6px;flex:1}
+.info h3{margin:0;font:600 1.18rem/1.25 "Playfair Display",Georgia,serif}
+.info p{margin:0;color:var(--redup);font-size:.94rem;flex:1}
+.harga{font-weight:700;color:var(--kuningan);font-size:1.08rem}
+.habis .harga{text-decoration:line-through;color:var(--redup)}
+.kosong{text-align:center;color:var(--redup);padding:40px 0}
+footer{text-align:center;color:var(--redup);padding:0 16px 40px;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="namaToko"></h1>
+  <p id="slogan"></p>
+  <span class="jam" id="jam"></span>
+</header>
+
+<div class="alat">
+  <div class="alat-isi">
+    <input id="cari" type="search" placeholder="Cari menu…" aria-label="Cari menu">
+    <div class="tab" id="tab" role="group" aria-label="Kategori"></div>
+  </div>
+</div>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <p class="kosong" id="kosong" hidden>Menu tidak ditemukan. Coba kata kunci lain.</p>
+</main>
+
+<footer id="footer"></footer>
+
+<script>
+/* =====================================================================
+   BAGIAN 1 — PENGATURAN RESTO  (edit teks di dalam tanda kutip)
+   ===================================================================== */
+const TOKO = {
+  nama:    "Ember & Oak Steakhouse",
+  slogan:  "Daging pilihan, dipanggang di atas bara kayu oak.",
+  jam:     "Buka setiap hari 11.00 – 22.00",
+  alamat:  "Jl. Contoh No. 1, Malang"
+};
+
+/* =====================================================================
+   BAGIAN 2 — DAFTAR MENU  (copy-paste satu baris { ... } untuk tambah menu)
+
+   nama       : nama menu
+   kategori   : bebas diisi apa saja, tab kategori dibuat otomatis
+   harga      : angka saja, tanpa titik (contoh 150000)
+   deskripsi  : keterangan singkat
+   gambar     : alamat foto, contoh "foto/tenderloin.jpg" atau link https://...
+                Kalau dikosongkan, otomatis memakai emoji di bawah
+   emoji      : pengganti gambar kalau "gambar" kosong / gagal dimuat
+   warna      : warna latar emoji (kode hex)
+   label      : tulisan lencana kecil, contoh "Favorit" (boleh kosong)
+   tersedia   : true = ada, false = habis
+   ===================================================================== */
+const MENU = [
+  { nama:"Tenderloin 200 gr",    kategori:"Steak", harga:165000, deskripsi:"Potongan paling empuk, dipanggang sesuai tingkat kematangan pilihan. Disajikan dengan kentang dan sayur panggang.", gambar:"", emoji:"🥩", warna:"#4a2420", label:"Favorit", tersedia:true },
+  { nama:"Ribeye 250 gr",        kategori:"Steak", harga:185000, deskripsi:"Berlemak marmer, juicy, dengan sisi luar yang garing. Pilih saus: lada hitam, jamur, atau BBQ.", gambar:"", emoji:"🥩", warna:"#55291f", label:"Terlaris", tersedia:true },
+  { nama:"Sirloin 200 gr",       kategori:"Steak", harga:145000, deskripsi:"Daging padat dengan rasa sapi yang kuat. Cocok untuk yang suka gigitan lebih berisi.", gambar:"", emoji:"🥩", warna:"#47231e", label:"", tersedia:true },
+  { nama:"T-Bone 400 gr",        kategori:"Steak", harga:265000, deskripsi:"Dua potongan dalam satu tulang: tenderloin dan sirloin. Untuk porsi besar.", gambar:"", emoji:"🍖", warna:"#5c2d1c", label:"Porsi besar", tersedia:true },
+  { nama:"Wagyu Slice 150 gr",   kategori:"Steak", harga:320000, deskripsi:"Wagyu iris tipis, dipanggang cepat di atas bara. Bumbu hanya garam laut dan lada.", gambar:"", emoji:"🥩", warna:"#612a22", label:"", tersedia:false },
+
+  { nama:"Mashed Potato",        kategori:"Pendamping", harga:25000, deskripsi:"Kentang tumbuk lembut dengan mentega dan sedikit krim.", gambar:"", emoji:"🥔", warna:"#4b3a24", label:"", tersedia:true },
+  { nama:"Grilled Vegetables",   kategori:"Pendamping", harga:28000, deskripsi:"Brokoli, wortel, dan paprika panggang dengan olive oil.", gambar:"", emoji:"🥦", warna:"#23382a", label:"", tersedia:true },
+  { nama:"Garlic Bread",         kategori:"Pendamping", harga:22000, deskripsi:"Roti panggang mentega bawang putih dan peterseli.", gambar:"", emoji:"🍞", warna:"#4d3a1e", label:"", tersedia:true },
+
+  { nama:"Caesar Salad",         kategori:"Pembuka", harga:48000, deskripsi:"Selada romaine, crouton, parmesan, dan dressing caesar.", gambar:"", emoji:"🥗", warna:"#24372a", label:"", tersedia:true },
+  { nama:"Mushroom Soup",        kategori:"Pembuka", harga:42000, deskripsi:"Sup krim jamur champignon dengan roti panggang kecil.", gambar:"", emoji:"🍲", warna:"#3f3125", label:"", tersedia:true },
+
+  { nama:"Es Teh Lemon",         kategori:"Minuman", harga:18000, deskripsi:"Teh dingin dengan irisan lemon segar.", gambar:"", emoji:"🍋", warna:"#4a4223", label:"", tersedia:true },
+  { nama:"Red Wine Gelas",       kategori:"Minuman", harga:85000, deskripsi:"Pasangan klasik untuk steak. Tanyakan pilihan wine hari ini ke pelayan.", gambar:"", emoji:"🍷", warna:"#4a1a28", label:"", tersedia:true },
+
+  { nama:"Chocolate Lava Cake",  kategori:"Penutup", harga:45000, deskripsi:"Kue cokelat hangat dengan isian lumer dan es krim vanila.", gambar:"", emoji:"🍰", warna:"#3d2420", label:"Favorit", tersedia:true },
+  { nama:"Vanilla Ice Cream",    kategori:"Penutup", harga:30000, deskripsi:"Tiga scoop es krim vanila dengan saus karamel.", gambar:"", emoji:"🍨", warna:"#41362a", label:"", tersedia:true }
+];
+
+/* =====================================================================
+   BAGIAN 3 — MESIN WEBSITE  (tidak perlu diubah)
+   ===================================================================== */
+const rupiah = n => "Rp " + Number(n).toLocaleString("id-ID");
+const $ = id => document.getElementById(id);
+let kategoriAktif = "Semua";
+
+document.title = TOKO.nama + " – Menu";
+$("namaToko").textContent = TOKO.nama;
+$("slogan").textContent = TOKO.slogan;
+$("jam").textContent = TOKO.jam;
+$("footer").textContent = TOKO.alamat;
+
+function buatTab(){
+  const daftar = ["Semua", ...new Set(MENU.map(m => m.kategori))];
+  $("tab").innerHTML = "";
+  daftar.forEach(k => {
+    const b = document.createElement("button");
+    b.textContent = k;
+    b.setAttribute("aria-pressed", k === kategoriAktif);
+    b.onclick = () => { kategoriAktif = k; buatTab(); tampil(); };
+    $("tab").appendChild(b);
+  });
+}
+
+function kartu(m){
+  const el = document.createElement("article");
+  el.className = "kartu" + (m.tersedia ? "" : " habis");
+
+  const foto = document.createElement("div");
+  foto.className = "foto";
+  foto.style.background = m.warna || "#333";
+  const pakaiEmoji = () => { foto.textContent = m.emoji || "🍽️"; foto.setAttribute("role","img"); foto.setAttribute("aria-label", m.nama); };
+  function badge(){
+    const teks = !m.tersedia ? "Habis" : m.label;
+    if (!teks) return;
+    const s = document.createElement("span");
+    s.className = "lencana"; s.textContent = teks;
+    if (!m.tersedia) s.style.background = "#5d5148";
+    foto.appendChild(s);
+  }
+  if (m.gambar){
+    const img = new Image();
+    img.alt = m.nama; img.loading = "lazy";
+    img.onerror = () => { foto.innerHTML = ""; pakaiEmoji(); badge(); };
+    img.src = m.gambar;
+    foto.appendChild(img);
+  } else pakaiEmoji();
+  badge();
+
+  const info = document.createElement("div");
+  info.className = "info";
+  info.innerHTML = `<h3></h3><p></p><div class="harga"></div>`;
+  info.querySelector("h3").textContent = m.nama;
+  info.querySelector("p").textContent = m.deskripsi;
+  info.querySelector(".harga").textContent = rupiah(m.harga);
+
+  el.append(foto, info);
+  return el;
+}
+
+function tampil(){
+  const kata = $("cari").value.trim().toLowerCase();
+  const hasil = MENU.filter(m =>
+    (kategoriAktif === "Semua" || m.kategori === kategoriAktif) &&
+    (m.nama + " " + m.deskripsi).toLowerCase().includes(kata)
+  );
+  $("grid").replaceChildren(...hasil.map(kartu));
+  $("kosong").hidden = hasil.length > 0;
+}
+
+$("cari").addEventListener("input", tampil);
+buatTab();
+tampil();
+</script>
+</body>
+</html>
